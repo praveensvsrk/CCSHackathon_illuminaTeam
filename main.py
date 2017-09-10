@@ -1,19 +1,23 @@
 import numpy as np
 import cv2
 import math
-from copy import deepcopy
 
-inputMode = False
 frame = None
-roiPts = []
 
 # 320 60
+
+name = "left.mp4"
 
 def get_safe_width(angle):
     return -0.5 * angle + 55
 
 def get_road_width(angle):
-    return (-16.0/3.0) * angle + 480
+    if name == "zigzag.mp4":
+        return (-20) * angle + 1800
+    elif name == "left.mp4":
+        return (- 77 / 4) * angle + 3465 / 2
+    else:
+        return (- 247 / 12) * angle + 3705 / 2
 
 def mycopy(array):
     li = []
@@ -21,18 +25,8 @@ def mycopy(array):
         li.append([int(i[0]), int(i[1])])
     return np.array(li)
 
-# def click_and_crop(event, x, y, flags, param):
-#     global frame, roiPts, inputMode
-#
-#     if inputMode and event == cv2.EVENT_LBUTTONDOWN and len(roiPts) < 4:
-#         roiPts.append((x, y))
-#         cv2.circle(frame, (x, y), 4, (0, 0, 255), 2)
-#         cv2.imshow("image", frame)
 
- # cv2.namedWindow("image")
-# cv2.setMouseCallback("image", click_and_crop)
-
-cap = cv2.VideoCapture('misdrive.avi')
+cap = cv2.VideoCapture(name)
 fgbg = cv2.createBackgroundSubtractorMOG2()
 mid_height = cap.get(4)/2
 
@@ -54,17 +48,6 @@ cap_rate = 5
 
 ret, frame = cap.read()
 
-# while True:
-#     cv2.imshow("image", frame)
-#     key = cv2.waitKey(1) & 0xFF
-#     if key == ord("i") and len(roiPts) < 4:
-#         inputMode = True
-#         orig = frame.copy()
-#
-#         while len(roiPts) < 4:
-#             cv2.imshow("image", frame)
-#             cv2.waitKey(0)
-#         break
 
 while True:
 
@@ -74,45 +57,25 @@ while True:
 
     edges = cv2.Canny(frame, 100, 200)
     display = edges.copy()
-    # display = cv2.cvtColor(display, cv2.COLOR_GRAY2BGR)
-
-
-    # if i == 200:
-    #     print len(edges)
-    #     for x in edges:
-    #         print x
     i += 1
-
 
     fgmask = fgbg.apply(frame)
     fgmask = cv2.erode(fgmask, None, iterations=2)
     fgmask = cv2.dilate(fgmask, None, iterations=2)
-    left = np.zeros((606, 548), np.uint8)
-    right = np.zeros((606, 548), np.uint8)
+
+    left = np.zeros(fgmask.shape, np.uint8)
+    right = np.zeros(fgmask.shape, np.uint8)
 
     if fgmask.any():
 
-        cnts = cv2.findContours(fgmask.copy(), cv2.RETR_EXTERNAL,
-                                cv2.CHAIN_APPROX_NONE)[-2]
+        cnts = cv2.findContours(fgmask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)[-2]
         if cnts:
-
-            # x, y, w, h = cv2.boundingRect(c)
-            # cv2.rectangle(output, (x, y), (x + w, y + h), (0, 255, 0), 2)
-
             c = max(cnts, key=cv2.contourArea)
-
-            # epsilon = 0.003 * cv2.arcLength(c, True)
-            # approx = cv2.approxPolyDP(c, epsilon, True)
-            # c = approx
-            # print c, len(c)
-            # cv2.drawContours(frame, c, -1, (128, 255, 0), 2)
-
             rect = cv2.minAreaRect(c)
             box = cv2.boxPoints(rect)
             box = np.int0(box)
 
             cv2.drawContours(display, [box], 0, (255, 255, 0), -1)
-
             if i == 1:
                 for xy in box:
                     center_x += xy[0]
@@ -139,25 +102,19 @@ while True:
                 for xy in box:
                     center_y += xy[1]
 
-                center_x/=4.0
-                center_y/=4.0
+                center_x /= 4.0
+                center_y /= 4.0
 
                 angle = (60.0 - (((center_y - mid_height) * 1.0)/mid_height * 60.0)) + 30.0
-                # cur_speed = math.sqrt(pow(center_x - prev_x, 2) + pow(center_y - prev_y, 2))
-                cur_speed = math.sqrt(pow(center_x - prev_x, 2) + pow(center_y - prev_y, 2))
-                # prev_deviation = deviation
-                # deviation = (center_x - prev_x) * (100 - get_safe_width(angle)) * 0.01
-                # print ((deviation - prev_deviation)/prev_deviation) * 100
+
                 cur_dist = 10 * (math.tan(math.radians(prev_angle)) - math.tan(math.radians(angle)))
 
                 cur_speed = (cur_dist)/cap_rate;
-                # print cur_dist
 
                 road_width = get_road_width(angle)
                 width_increment = road_width/20
                 orig = box.copy()
                 sorted_box = np.sort(orig)
-
 
                 lc = 0
                 rc = 0
@@ -182,8 +139,8 @@ while True:
                             lc = x + 1
                             break
 
-                orig = box.copy()
-                sorted_box = np.sort(orig)
+                # orig = box.copy()
+                # sorted_box = np.sort(orig)
 
                 for x in range(20):
                     for p in sorted_box[:2]:
@@ -205,26 +162,19 @@ while True:
                             rc = x + 1
                             break
 
-
-                # print prev_angle, angle
-
-                print lc, rc
-                # print deviation
+                deviation = lc - rc
+                print "Speed = ",cur_speed, "Acceleration = ",(cur_speed - prev_speed) / cap_rate, " Deviation = ", lc, rc
 
 
-                print "Speed = ",cur_speed, "Accleration = ",(cur_speed - prev_speed) / cap_rate, " Deviation = ", lc, rc
-
-        # cv2.imshow('width_inc', left)
-        # cv2.imshow('width_inc2', right)
         font = cv2.FONT_HERSHEY_SIMPLEX
         cv2.putText(frame, "Speed: " + '%.2f'%(cur_speed*50), (10, 20), font, 0.8, (255, 255, 255), 2, cv2.LINE_AA)
         cv2.putText(frame, "Acc: " + '%.2f'%((cur_speed - prev_speed) / cap_rate *50), (10, 50), font, 0.8, (255, 255, 255), 2, cv2.LINE_AA)
+        cv2.putText(frame, "Dev: " + '%.2f'%((lc - rc)), (10, 80), font, 0.8, (255, 255, 255), 2, cv2.LINE_AA)
         cv2.imshow('frame', frame)
-        cv2.imshow('image', fgmask)
+        # cv2.imshow('image', right)
     k = cv2.waitKey(30) & 0xff
     if k == 27:
         break
 
-# print t_dist
 cap.release()
 cv2.destroyAllWindows()
