@@ -6,7 +6,7 @@ frame = None
 
 # 320 60
 
-name = "left.mp4"
+name = "zigzag.mp4"
 
 def get_safe_width(angle):
     return -0.5 * angle + 55
@@ -14,7 +14,7 @@ def get_safe_width(angle):
 def get_road_width(angle):
     if name == "zigzag.mp4":
         return (-20) * angle + 1800
-    elif name == "left.mp4":
+    elif name == "left1.mp4" or name == "speed.mp4":
         return (- 77 / 4) * angle + 3465 / 2
     else:
         return (- 247 / 12) * angle + 3705 / 2
@@ -89,6 +89,11 @@ while True:
 
 
             if i % cap_rate == 0:
+
+                deviation = lc -rc
+                print deviation - prev_deviation
+                prev_deviation = deviation
+
                 prev_speed = cur_speed
                 prev_x = center_x
                 prev_y = center_y
@@ -162,8 +167,9 @@ while True:
                             rc = x + 1
                             break
 
-                deviation = lc - rc
-                print "Speed = ",cur_speed, "Acceleration = ",(cur_speed - prev_speed) / cap_rate, " Deviation = ", lc, rc
+                #deviation = lc - rc
+
+                #print "Speed = ",cur_speed, "Acceleration = ",(cur_speed - prev_speed) / cap_rate, " Deviation = ", lc, rc
 
 
         font = cv2.FONT_HERSHEY_SIMPLEX
@@ -172,9 +178,9 @@ while True:
         cv2.putText(frame, "Dev: " + '%.2f'%((lc - rc)), (10, 80), font, 0.8, (255, 255, 255), 2, cv2.LINE_AA)
         cv2.imshow('frame', frame)
         # cv2.imshow('image', right)
-    k = cv2.waitKey(30) & 0xff
+    k = cv2.waitKey(70)
     if k == 27:
         break
 
 cap.release()
-cv2.destroyAllWindows()
+#cv2.destroyAllWindows()
