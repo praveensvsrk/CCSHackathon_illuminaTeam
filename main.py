@@ -6,7 +6,10 @@ frame = None
 
 # 320 60
 
-name = "zigzag.mp4"
+name = "right.mp4"
+f = open("log.log", "w+")
+
+next = 20
 
 def get_safe_width(angle):
     return -0.5 * angle + 55
@@ -43,8 +46,17 @@ lc = 0
 rc = 0
 cur_dist=0
 t_dist = 0
+delta_dev = 0
 
-cap_rate = 5
+cap_rate = 6
+
+speed_flag = False
+deviation_flag = False
+deceleration_flag = False
+
+speed_threshold = 50
+deviation_threshold = 13
+deceleration_threshold = -3
 
 ret, frame = cap.read()
 
@@ -87,11 +99,9 @@ while True:
                 angle = (60.0 - (((center_y - mid_height) * 1.0) / mid_height * 60.0)) + 30.0
                 cur_dist = 10 * math.tan(math.radians(angle))
 
-
             if i % cap_rate == 0:
-
                 deviation = lc -rc
-                print deviation - prev_deviation
+                delta_dev = deviation - prev_deviation
                 prev_deviation = deviation
 
                 prev_speed = cur_speed
@@ -173,14 +183,42 @@ while True:
 
 
         font = cv2.FONT_HERSHEY_SIMPLEX
-        cv2.putText(frame, "Speed: " + '%.2f'%(cur_speed*50), (10, 20), font, 0.8, (255, 255, 255), 2, cv2.LINE_AA)
-        cv2.putText(frame, "Acc: " + '%.2f'%((cur_speed - prev_speed) / cap_rate *50), (10, 50), font, 0.8, (255, 255, 255), 2, cv2.LINE_AA)
-        cv2.putText(frame, "Dev: " + '%.2f'%((lc - rc)), (10, 80), font, 0.8, (255, 255, 255), 2, cv2.LINE_AA)
+        if i > 10:
+            cv2.putText(frame, "Speed: " + '%.2f'%(cur_speed*50), (10, 20), font, 0.8, (255, 255, 255), 2, cv2.LINE_AA)
+            cv2.putText(frame, "Acc: " + '%.2f'%((cur_speed - prev_speed) / cap_rate *50), (10, 50), font, 0.8, (255, 255, 255), 2, cv2.LINE_AA)
+            cv2.putText(frame, "Dev: " + '%.2f'%((delta_dev)), (10, 80), font, 0.8, (255, 255, 255), 2, cv2.LINE_AA)
+
+
+
+        if i > 20:
+            if cur_speed * 50 > speed_threshold:
+                speed_flag = True
+                print "hid"
+            if delta_dev > deviation_threshold:
+                deviation_flag = True
+            if (cur_speed - prev_speed) / cap_rate * 50 < deceleration_threshold:
+                deceleration_flag = True
+
+            if speed_flag:
+                print "hi"
+                cv2.putText(frame, "Overspeeding", (500, 20), font, 0.6, (255, 255, 255), 1,
+                            cv2.LINE_AA)
+                next += 30
+            if deviation_flag:
+                cv2.putText(frame, "Sudden deviation", (500, 40), font, 0.6, (255, 255, 255), 1,
+                            cv2.LINE_AA)
+                next += 30
+            if deceleration_flag:
+                cv2.putText(frame, "Sudden brakes", (500, 60), font, 0.6, (255, 255, 255), 1,
+                            cv2.LINE_AA)
+                next += 30
         cv2.imshow('frame', frame)
-        # cv2.imshow('image', right)
+
+        cv2.imshow('edges', edges)
     k = cv2.waitKey(70)
     if k == 27:
         break
 
 cap.release()
-#cv2.destroyAllWindows()
+cv2.destroyAllWindows()
+
