@@ -6,7 +6,7 @@ frame = None
 
 # 320 60
 
-name = "right.mp4"
+name = "zigzag_case.mp4"
 f = open("log.log", "w+")
 
 next = 20
@@ -15,9 +15,9 @@ def get_safe_width(angle):
     return -0.5 * angle + 55
 
 def get_road_width(angle):
-    if name == "zigzag.mp4":
+    if name == "zigzag_case.mp4":
         return (-20) * angle + 1800
-    elif name == "left1.mp4" or name == "speed.mp4":
+    elif name == "ideal_case.mp4" or name == "speed_case.mp4":
         return (- 77 / 4) * angle + 3465 / 2
     else:
         return (- 247 / 12) * angle + 3705 / 2
